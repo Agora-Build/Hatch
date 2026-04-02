@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+"use strict";
+
+const { execFileSync } = require("child_process");
+const os = require("os");
+const path = require("path");
+
+const PLATFORM_PACKAGES = {
+  "linux-x64":    "@agora-build/hatch-linux-x64",
+  "linux-arm64":  "@agora-build/hatch-linux-arm64",
+  "darwin-x64":   "@agora-build/hatch-darwin-x64",
+  "darwin-arm64": "@agora-build/hatch-darwin-arm64",
+  "win32-x64":    "@agora-build/hatch-win32-x64",
+};
+
+function getBinary() {
+  const key = `${os.platform()}-${os.arch()}`;
+  const pkg = PLATFORM_PACKAGES[key];
+  if (!pkg) {
+    throw new Error(
+      `hatch: unsupported platform ${key}. ` +
+      `Supported: ${Object.keys(PLATFORM_PACKAGES).join(", ")}`
+    );
+  }
+  const binName = os.platform() === "win32" ? "hatch.exe" : "hatch";
+  try {
+    return require.resolve(`${pkg}/${binName}`);
+  } catch {
+    throw new Error(
+      `hatch: platform package ${pkg} is not installed. ` +
+      `Run: npm install ${pkg}`
+    );
+  }
+}
+
+try {
+  const binary = getBinary();
+  const result = execFileSync(binary, process.argv.slice(2), { stdio: "inherit" });
+} catch (err) {
+  if (typeof err.status === "number") {
+    process.exit(err.status);
+  }
+  console.error(err.message);
+  process.exit(1);
+}

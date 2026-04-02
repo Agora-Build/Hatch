@@ -1,0 +1,9 @@
+{
+  "name": "@agora-build/hatch-linux-x64",
+  "version": "0.1.0",
+  "description": "hatch binary for Linux x64",
+  "os": ["linux"],
+  "cpu": ["x64"],
+  "repository": { "type": "git", "url": "https://github.com/Agora-Build/Hatch" },
+  "license": "MIT"
+}

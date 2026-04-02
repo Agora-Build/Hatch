@@ -1,0 +1,20 @@
+{
+  "name": "@agora-build/hatch",
+  "version": "0.1.0",
+  "description": "Secure, versioned file release CLI for S3-compatible storage",
+  "bin": {
+    "hatch": "bin/hatch"
+  },
+  "optionalDependencies": {
+    "@agora-build/hatch-linux-x64": "0.1.0",
+    "@agora-build/hatch-linux-arm64": "0.1.0",
+    "@agora-build/hatch-darwin-x64": "0.1.0",
+    "@agora-build/hatch-darwin-arm64": "0.1.0",
+    "@agora-build/hatch-win32-x64": "0.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Agora-Build/Hatch"
+  },
+  "license": "MIT"
+}
