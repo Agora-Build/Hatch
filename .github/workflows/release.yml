@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            binary: hatch
+            npm_pkg: hatch-linux-x64
+            cross: false
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            binary: hatch
+            npm_pkg: hatch-linux-arm64
+            cross: true
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            binary: hatch
+            npm_pkg: hatch-darwin-x64
+            cross: false
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            binary: hatch
+            npm_pkg: hatch-darwin-arm64
+            cross: false
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            binary: hatch.exe
+            npm_pkg: hatch-win32-x64
+            cross: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (aarch64-linux only)
+        if: matrix.cross == true
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build (native)
+        if: matrix.cross == false
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build (cross)
+        if: matrix.cross == true
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Stage binary for GitHub Release
+        shell: bash
+        run: |
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} \
+             hatch-${{ matrix.target }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+
+      - name: Copy binary into npm platform package
+        shell: bash
+        run: |
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} \
+             npm/platforms/${{ matrix.npm_pkg }}/${{ matrix.binary }}
+
+      - name: Upload release binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: hatch-${{ matrix.target }}*
+
+      - name: Upload npm platform package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.npm_pkg }}
+          path: npm/platforms/${{ matrix.npm_pkg }}/
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: release-binaries/
+          merge-multiple: true
+
+      - name: Attach binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-binaries/*
+
+  publish-npm:
+    name: Publish npm packages
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download npm platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: npm-*
+          path: npm-artifacts/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Derive version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Publish platform packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for pkg_name in hatch-linux-x64 hatch-linux-arm64 hatch-darwin-x64 hatch-darwin-arm64 hatch-win32-x64; do
+            pkg_dir="npm/platforms/$pkg_name"
+            # Copy binary from artifact
+            cp npm-artifacts/npm-${pkg_name}/* "$pkg_dir/" 2>/dev/null || true
+            cd "$pkg_dir"
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
+            npm publish --access public
+            cd -
+          done
+
+      - name: Update and publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd npm/hatch
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            for (const k of Object.keys(pkg.optionalDependencies)) {
+              pkg.optionalDependencies[k] = process.env.VERSION;
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          npm publish --access public
