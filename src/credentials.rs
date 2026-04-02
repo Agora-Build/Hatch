@@ -47,6 +47,9 @@ impl Credentials {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     fn clear_env() {
         for var in &[
@@ -62,6 +65,7 @@ mod tests {
 
     #[test]
     fn load_succeeds_without_s3_credentials() {
+        let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         let creds = Credentials::load(None).unwrap();
         assert!(creds.access_key.is_none());
@@ -73,6 +77,7 @@ mod tests {
 
     #[test]
     fn load_captures_s3_credentials_when_present() {
+        let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         std::env::set_var("HATCH_ACCESS_KEY", "mykey");
         std::env::set_var("HATCH_SECRET_KEY", "mysecret");
@@ -85,41 +90,52 @@ mod tests {
 
     #[test]
     fn require_s3_fails_if_access_key_missing() {
-        clear_env();
-        std::env::set_var("HATCH_SECRET_KEY", "secret");
-        std::env::set_var("HATCH_BUCKET", "bucket");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials {
+            endpoint: "https://dl.agora.build".into(),
+            public_url: "https://dl.agora.build".into(),
+            access_key: None,
+            secret_key: Some("secret".into()),
+            bucket: Some("bucket".into()),
+        };
         let err = creds.require_s3().unwrap_err();
         assert!(err.to_string().contains("HATCH_ACCESS_KEY"));
     }
 
     #[test]
     fn require_s3_fails_if_secret_key_missing() {
-        clear_env();
-        std::env::set_var("HATCH_ACCESS_KEY", "key");
-        std::env::set_var("HATCH_BUCKET", "bucket");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials {
+            endpoint: "https://dl.agora.build".into(),
+            public_url: "https://dl.agora.build".into(),
+            access_key: Some("key".into()),
+            secret_key: None,
+            bucket: Some("bucket".into()),
+        };
         let err = creds.require_s3().unwrap_err();
         assert!(err.to_string().contains("HATCH_SECRET_KEY"));
     }
 
     #[test]
     fn require_s3_fails_if_bucket_missing() {
-        clear_env();
-        std::env::set_var("HATCH_ACCESS_KEY", "key");
-        std::env::set_var("HATCH_SECRET_KEY", "secret");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials {
+            endpoint: "https://dl.agora.build".into(),
+            public_url: "https://dl.agora.build".into(),
+            access_key: Some("key".into()),
+            secret_key: Some("secret".into()),
+            bucket: None,
+        };
         let err = creds.require_s3().unwrap_err();
         assert!(err.to_string().contains("HATCH_BUCKET"));
     }
 
     #[test]
     fn require_s3_succeeds_when_all_present() {
-        clear_env();
-        std::env::set_var("HATCH_ACCESS_KEY", "key");
-        std::env::set_var("HATCH_SECRET_KEY", "secret");
-        std::env::set_var("HATCH_BUCKET", "bucket");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials {
+            endpoint: "https://dl.agora.build".into(),
+            public_url: "https://dl.agora.build".into(),
+            access_key: Some("key".into()),
+            secret_key: Some("secret".into()),
+            bucket: Some("bucket".into()),
+        };
         let (k, s, b) = creds.require_s3().unwrap();
         assert_eq!(k, "key");
         assert_eq!(s, "secret");
@@ -128,6 +144,7 @@ mod tests {
 
     #[test]
     fn target_override_sets_both_endpoint_and_public_url() {
+        let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         let creds = Credentials::load(Some("https://s3.example.com")).unwrap();
         assert_eq!(creds.endpoint, "https://s3.example.com");
@@ -136,6 +153,7 @@ mod tests {
 
     #[test]
     fn hatch_public_url_is_independent_of_endpoint() {
+        let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         std::env::set_var("HATCH_ENDPOINT", "https://accountid.r2.cloudflarestorage.com");
         std::env::set_var("HATCH_PUBLIC_URL", "https://dl.agora.build");
