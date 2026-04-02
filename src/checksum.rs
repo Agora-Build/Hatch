@@ -1,7 +1,6 @@
 use std::path::Path;
 use anyhow::Result;
 use md5::Digest as _;
-use sha2::Digest as _;
 
 pub struct Checksums {
     pub md5: String,

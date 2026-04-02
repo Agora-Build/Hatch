@@ -1,4 +1,4 @@
-use super::{ObjectMetadata, Storage, StorageObject};
+use super::{Storage, StorageObject};
 use crate::credentials::Credentials;
 use anyhow::{Context, Result};
 use aws_sdk_s3::primitives::ByteStream;
@@ -139,39 +139,6 @@ impl Storage for S3Client {
             .collect();
 
         Ok(objects)
-    }
-
-    async fn head(&self, key: &str) -> Result<ObjectMetadata> {
-        let resp = self.client
-            .head_object()
-            .bucket(&self.bucket)
-            .key(key)
-            .send()
-            .await
-            .with_context(|| format!("Object not found: {}", key))?;
-
-        Ok(ObjectMetadata {
-            key: key.to_string(),
-            size: resp.content_length().unwrap_or(0) as u64,
-            last_modified: resp
-                .last_modified()
-                .map(|t| t.to_string())
-                .unwrap_or_default(),
-            etag: resp.e_tag().unwrap_or("").trim_matches('"').to_string(),
-        })
-    }
-
-    async fn get_text(&self, key: &str) -> Result<String> {
-        let resp = self.client
-            .get_object()
-            .bucket(&self.bucket)
-            .key(key)
-            .send()
-            .await
-            .with_context(|| format!("Failed to fetch {}", key))?;
-        let bytes = resp.body.collect().await?.into_bytes();
-        String::from_utf8(bytes.to_vec())
-            .with_context(|| format!("Non-UTF8 content in {}", key))
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {
