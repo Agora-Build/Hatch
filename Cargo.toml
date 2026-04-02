@@ -1,0 +1,30 @@
+[package]
+name = "hatch"
+version = "0.1.0"
+edition = "2021"
+description = "Secure, versioned file release CLI for S3-compatible storage"
+repository = "https://github.com/Agora-Build/Hatch"
+license = "MIT"
+
+[[bin]]
+name = "hatch"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+aws-sdk-s3 = "1"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-credential-types = "1"
+tokio = { version = "1", features = ["full"] }
+md-5 = "0.10"
+sha2 = "0.10"
+dotenvy = "0.15"
+indicatif = "0.17"
+anyhow = "1"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+
+[dev-dependencies]
+tempfile = "3"
