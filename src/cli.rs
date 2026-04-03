@@ -15,7 +15,7 @@ CREDENTIALS\n\
   HATCH_SECRET_KEY=<secret>    Required for: push, drop\n\
   HATCH_BUCKET=<bucket>        Required for: push, drop\n\
   HATCH_ENDPOINT=<url>         S3 API endpoint  (default: https://dl.agora.build)\n\
-  HATCH_PUBLIC_URL=<url>       Public CDN URL   (default: same as HATCH_ENDPOINT)\n\
+  HATCH_PUBLIC_URL=<url>       Public CDN URL   (default: https://dl.agora.build)\n\
 \n\
   'list' and 'info' work without credentials:\n\
     list  — tries anonymous S3; falls back with a helpful error if bucket is private\n\
