@@ -48,8 +48,18 @@ EXAMPLE .env\n\
   HATCH_PUBLIC_URL=https://dl.agora.build\n\
 \n\
 RELEASE PATH CONVENTION\n\
-  /release/<product>_<version>_<date>_<build>/\n\
-  e.g. /release/myapp_v1.2.0_20260402_build42/"
+  /release/<product>/<major_version>/\n\
+  e.g. /release/myapp/v1/\n\
+\n\
+  File name should include full version and build info:\n\
+  <name>_v<version>_<build>.zip\n\
+  e.g. myapp_v1.0_build42.zip\n\
+\n\
+  Full URL result:\n\
+  https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip\n\
+\n\
+  Push example:\n\
+  hatch push myapp_v1.0_build42.zip --path /release/myapp/v1"
 )]
 pub struct Cli {
     #[command(subcommand)]
