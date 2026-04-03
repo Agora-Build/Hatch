@@ -97,4 +97,38 @@ mod tests {
         assert_eq!(format_size(1024 * 1024), "1.0 MB");
         assert_eq!(format_size(1024 * 1024 * 1024), "1.0 GB");
     }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn format_size_zero_bytes() {
+        assert_eq!(format_size(0), "0 B");
+    }
+
+    #[test]
+    fn format_size_just_below_kb() {
+        assert_eq!(format_size(1023), "1023 B");
+    }
+
+    #[test]
+    fn format_size_just_above_kb() {
+        assert_eq!(format_size(1025), "1.0 KB");
+    }
+
+    #[test]
+    fn format_size_large_gb() {
+        // 10 GB
+        assert_eq!(format_size(10 * 1024 * 1024 * 1024), "10.0 GB");
+    }
+
+    #[test]
+    fn format_size_fractional_mb() {
+        // 1.5 MB = 1572864 bytes
+        assert_eq!(format_size(1572864), "1.5 MB");
+    }
+
+    #[test]
+    fn max_keys_clamping_at_exact_limit() {
+        assert_eq!(std::cmp::min(1000, MAX_KEYS_LIMIT), 1000);
+    }
 }

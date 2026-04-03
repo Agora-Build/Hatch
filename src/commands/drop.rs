@@ -55,4 +55,19 @@ mod tests {
         assert_eq!(object_key("/release/v1/", "app.zip"), "release/v1/app.zip");
         assert_eq!(object_key("release/v1", "app.zip"), "release/v1/app.zip");
     }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn object_key_deeply_nested_path() {
+        assert_eq!(
+            object_key("/org/product/v2/nightly/", "build.tar.gz"),
+            "org/product/v2/nightly/build.tar.gz"
+        );
+    }
+
+    #[test]
+    fn object_key_with_empty_path() {
+        assert_eq!(object_key("", "app.zip"), "/app.zip");
+    }
 }

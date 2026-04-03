@@ -90,7 +90,7 @@ pub enum Commands {
         #[arg(long)]
         path: String,
         /// Maximum number of results (default: 100, max: 1000)
-        #[arg(long, default_value = "100")]
+        #[arg(long, default_value = "100", value_parser = clap::value_parser!(i32).range(1..=1000))]
         max_keys: i32,
         /// Output as JSON
         #[arg(long)]
@@ -171,5 +171,87 @@ mod tests {
             "hatch", "push", "./f.zip", "--path", "/r", "--target", "https://s3.example.com",
         ]).unwrap();
         assert_eq!(cli.target, Some("https://s3.example.com".to_string()));
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn max_keys_rejects_zero() {
+        let err = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "0"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn max_keys_rejects_negative() {
+        let err = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "-5"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn max_keys_accepts_1() {
+        let cli = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "1"]).unwrap();
+        if let Commands::List { max_keys, .. } = cli.command {
+            assert_eq!(max_keys, 1);
+        }
+    }
+
+    #[test]
+    fn max_keys_accepts_1000() {
+        let cli = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "1000"]).unwrap();
+        if let Commands::List { max_keys, .. } = cli.command {
+            assert_eq!(max_keys, 1000);
+        }
+    }
+
+    #[test]
+    fn max_keys_rejects_1001() {
+        let err = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "1001"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn push_missing_path_fails() {
+        let err = Cli::try_parse_from(["hatch", "push", "file.zip"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn drop_missing_path_fails() {
+        let err = Cli::try_parse_from(["hatch", "drop", "file.zip"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn list_missing_path_fails() {
+        let err = Cli::try_parse_from(["hatch", "list"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn no_subcommand_fails() {
+        let err = Cli::try_parse_from(["hatch"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn target_without_subcommand_fails() {
+        let err = Cli::try_parse_from(["hatch", "--target", "https://x.com"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn list_json_flag_parsed() {
+        let cli = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--json"]).unwrap();
+        if let Commands::List { json, .. } = cli.command {
+            assert!(json);
+        }
+    }
+
+    #[test]
+    fn drop_defaults_yes_to_false() {
+        let cli = Cli::try_parse_from(["hatch", "drop", "f.zip", "--path", "/r"]).unwrap();
+        if let Commands::Drop { yes, .. } = cli.command {
+            assert!(!yes);
+        }
     }
 }

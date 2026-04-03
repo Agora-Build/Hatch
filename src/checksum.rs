@@ -74,4 +74,51 @@ mod tests {
         assert_eq!(cs.md5, "d41d8cd98f00b204e9800998ecf8427e");
         assert_eq!(cs.sha256, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn compute_large_file_spans_multiple_buffer_reads() {
+        // 200KB — exceeds the 64KB internal buffer, forces multiple read() loops
+        let data = vec![0xABu8; 200 * 1024];
+        let f = tmp(&data);
+        let cs = compute(f.path()).unwrap();
+        // Just verify it produces 32-char hex (MD5) and 64-char hex (SHA256)
+        assert_eq!(cs.md5.len(), 32);
+        assert_eq!(cs.sha256.len(), 64);
+        assert!(cs.md5.chars().all(|c| c.is_ascii_hexdigit()));
+        assert!(cs.sha256.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn compute_nonexistent_file_returns_error() {
+        let result = compute(Path::new("/tmp/hatch_nonexistent_file_42"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn format_line_with_filename_containing_spaces() {
+        assert_eq!(
+            format_line("abc123", "my file (1).zip"),
+            "abc123  my file (1).zip"
+        );
+    }
+
+    #[test]
+    fn compute_single_byte_file() {
+        let f = tmp(b"\x00");
+        let cs = compute(f.path()).unwrap();
+        // MD5 of a single null byte
+        assert_eq!(cs.md5, "93b885adfe0da089cdf634904fd59f71");
+    }
+
+    #[test]
+    fn compute_exactly_64kb_file() {
+        // Exactly one buffer size — tests the boundary between 1 and 2 reads
+        let data = vec![0x42u8; 65536];
+        let f = tmp(&data);
+        let cs = compute(f.path()).unwrap();
+        assert_eq!(cs.md5.len(), 32);
+        assert_eq!(cs.sha256.len(), 64);
+    }
 }

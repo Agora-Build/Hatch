@@ -98,4 +98,30 @@ mod tests {
             "https://s3.example.com/release/v1/file.zip"
         );
     }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn build_url_with_port() {
+        assert_eq!(
+            build_url("http://localhost:9000", "/release/v1", "file.zip"),
+            "http://localhost:9000/release/v1/file.zip"
+        );
+    }
+
+    #[test]
+    fn build_url_path_just_slash() {
+        assert_eq!(
+            build_url("https://dl.agora.build", "/", "file.zip"),
+            "https://dl.agora.build//file.zip"
+        );
+    }
+
+    #[test]
+    fn build_url_deeply_nested_path() {
+        assert_eq!(
+            build_url("https://dl.agora.build", "/org/product/v1/nightly", "build.tar.gz"),
+            "https://dl.agora.build/org/product/v1/nightly/build.tar.gz"
+        );
+    }
 }

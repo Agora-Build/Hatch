@@ -27,6 +27,10 @@ pub async fn run(
     path: &str,
     force: bool,
 ) -> Result<()> {
+    if !file.exists() {
+        anyhow::bail!("File not found: {}", file.display());
+    }
+
     let filename = file
         .file_name()
         .and_then(|n| n.to_str())
@@ -54,17 +58,29 @@ pub async fn run(
     pb.set_message(format!("Uploading {}...", filename));
     storage.upload(&key, file).await?;
 
+    let url = build_public_url(public_url_base, path, filename);
+
     pb.set_message(format!("Uploading {}.md5...", filename));
     let md5_content = crate::checksum::format_line(&checksums.md5, filename);
-    storage.upload_bytes(&format!("{}.md5", key), md5_content.as_bytes()).await?;
+    if let Err(e) = storage.upload_bytes(&format!("{}.md5", key), md5_content.as_bytes()).await {
+        pb.finish_and_clear();
+        eprintln!("Warning: main file uploaded to {}", url);
+        eprintln!("Failed to upload {}.md5 sidecar: {}", filename, e);
+        anyhow::bail!("Sidecar upload failed — main file is at {}", url);
+    }
 
     pb.set_message(format!("Uploading {}.sha256...", filename));
     let sha256_content = crate::checksum::format_line(&checksums.sha256, filename);
-    storage.upload_bytes(&format!("{}.sha256", key), sha256_content.as_bytes()).await?;
+    if let Err(e) = storage.upload_bytes(&format!("{}.sha256", key), sha256_content.as_bytes()).await {
+        pb.finish_and_clear();
+        eprintln!("Warning: main file uploaded to {}", url);
+        eprintln!("Failed to upload {}.sha256 sidecar: {}", filename, e);
+        anyhow::bail!("Sidecar upload failed — main file is at {}", url);
+    }
 
     pb.finish_and_clear();
 
-    println!("{}", build_public_url(public_url_base, path, filename));
+    println!("{}", url);
     Ok(())
 }
 
@@ -95,5 +111,55 @@ mod tests {
     fn object_key_combines_prefix_and_filename() {
         assert_eq!(object_key("/release/v1", "app.zip"), "release/v1/app.zip");
         assert_eq!(object_key("release/v1/", "app.zip"), "release/v1/app.zip");
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn normalize_prefix_empty_string() {
+        assert_eq!(normalize_prefix(""), "");
+    }
+
+    #[test]
+    fn normalize_prefix_just_slashes() {
+        assert_eq!(normalize_prefix("///"), "");
+    }
+
+    #[test]
+    fn normalize_prefix_deeply_nested() {
+        assert_eq!(
+            normalize_prefix("/a/b/c/d/e/f/"),
+            "a/b/c/d/e/f"
+        );
+    }
+
+    #[test]
+    fn object_key_with_empty_path() {
+        // Empty path produces "/filename" — this is technically valid S3 key
+        assert_eq!(object_key("", "app.zip"), "/app.zip");
+    }
+
+    #[test]
+    fn build_public_url_with_port() {
+        assert_eq!(
+            build_public_url("https://localhost:9000", "/release/v1", "app.zip"),
+            "https://localhost:9000/release/v1/app.zip"
+        );
+    }
+
+    #[test]
+    fn build_public_url_with_empty_path() {
+        assert_eq!(
+            build_public_url("https://dl.agora.build", "", "app.zip"),
+            "https://dl.agora.build//app.zip"
+        );
+    }
+
+    #[test]
+    fn object_key_filename_with_special_chars() {
+        assert_eq!(
+            object_key("/release/v1", "my app (v2.0).tar.gz"),
+            "release/v1/my app (v2.0).tar.gz"
+        );
     }
 }

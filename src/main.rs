@@ -28,7 +28,10 @@ async fn main() -> Result<()> {
                 if creds.access_key.is_some() && creds.secret_key.is_some() && creds.bucket.is_some() {
                     Box::new(storage::s3::S3Client::new_authenticated(&creds).await?)
                 } else {
-                    let bucket = creds.bucket.as_deref().unwrap_or("");
+                    let bucket = creds.bucket.as_deref().unwrap_or_else(|| {
+                        eprintln!("Warning: HATCH_BUCKET not set — listing may fail.");
+                        ""
+                    });
                     Box::new(storage::s3::S3Client::new_anonymous(&creds.endpoint, bucket).await?)
                 };
             commands::list::run(storage.as_ref(), &path, max_keys, json).await?;

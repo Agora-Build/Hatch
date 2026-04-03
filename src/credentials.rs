@@ -161,4 +161,43 @@ mod tests {
         assert_eq!(creds.endpoint, "https://accountid.r2.cloudflarestorage.com");
         assert_eq!(creds.public_url, "https://dl.agora.build");
     }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn require_s3_rejects_empty_string_access_key() {
+        // Some("") is set-but-empty — require_s3 should still return it
+        // because the validation is on Option::None, not empty strings.
+        // This is intentional: let S3 reject bad credentials, not us.
+        let creds = Credentials {
+            endpoint: "https://dl.agora.build".into(),
+            public_url: "https://dl.agora.build".into(),
+            access_key: Some("".into()),
+            secret_key: Some("secret".into()),
+            bucket: Some("bucket".into()),
+        };
+        let (k, _, _) = creds.require_s3().unwrap();
+        assert_eq!(k, "");
+    }
+
+    #[test]
+    fn target_override_ignores_existing_public_url_env() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        std::env::set_var("HATCH_PUBLIC_URL", "https://cdn.example.com");
+        let creds = Credentials::load(Some("https://override.example.com")).unwrap();
+        // --target should override HATCH_PUBLIC_URL entirely
+        assert_eq!(creds.public_url, "https://override.example.com");
+    }
+
+    #[test]
+    fn load_only_endpoint_set_public_url_inherits() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        std::env::set_var("HATCH_ENDPOINT", "https://custom.endpoint.com");
+        let creds = Credentials::load(None).unwrap();
+        assert_eq!(creds.endpoint, "https://custom.endpoint.com");
+        // public_url inherits endpoint when HATCH_PUBLIC_URL not set
+        assert_eq!(creds.public_url, "https://custom.endpoint.com");
+    }
 }

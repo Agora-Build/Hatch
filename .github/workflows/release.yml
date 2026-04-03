@@ -9,8 +9,21 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run tests
+        run: cargo test --verbose
+
   build:
     name: Build ${{ matrix.target }}
+    needs: test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -27,7 +40,7 @@ jobs:
             npm_pkg: hatch-linux-arm64
             cross: true
           - target: x86_64-apple-darwin
-            os: macos-latest
+            os: macos-13
             binary: hatch
             npm_pkg: hatch-darwin-x64
             cross: false
@@ -104,6 +117,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-binaries/*
+          generate_release_notes: true
 
   publish-npm:
     name: Publish npm packages
@@ -117,6 +131,7 @@ jobs:
         with:
           pattern: npm-*
           path: npm-artifacts/
+          merge-multiple: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -133,8 +148,8 @@ jobs:
         run: |
           for pkg_name in hatch-linux-x64 hatch-linux-arm64 hatch-darwin-x64 hatch-darwin-arm64 hatch-win32-x64; do
             pkg_dir="npm/platforms/$pkg_name"
-            # Copy binary from artifact
-            cp npm-artifacts/npm-${pkg_name}/* "$pkg_dir/" 2>/dev/null || true
+            # Copy binary from artifact into platform package
+            cp npm-artifacts/$pkg_name/* "$pkg_dir/" 2>/dev/null || true
             cd "$pkg_dir"
             npm version "$VERSION" --no-git-tag-version --allow-same-version
             npm publish --access public
