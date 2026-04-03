@@ -1,4 +1,7 @@
+use crate::rate_limiter::RateLimiter;
 use anyhow::Result;
+
+const REQUESTS_PER_SEC: u32 = 5;
 
 fn build_url(public_url: &str, path: &str, filename: &str) -> String {
     format!(
@@ -16,8 +19,10 @@ pub async fn run(
 ) -> Result<()> {
     let url = build_url(public_url, path, file);
     let client = reqwest::Client::new();
+    let mut rl = RateLimiter::new(REQUESTS_PER_SEC);
 
     // HEAD request for metadata
+    rl.acquire().await;
     let head = client
         .head(&url)
         .send()
@@ -62,6 +67,7 @@ pub async fn run(
     // GET sidecar files
     for ext in &["md5", "sha256"] {
         let sidecar_url = format!("{}.{}", url, ext);
+        rl.acquire().await;
         match client.get(&sidecar_url).send().await {
             Ok(resp) if resp.status().is_success() => {
                 let body = resp.text().await.unwrap_or_default();

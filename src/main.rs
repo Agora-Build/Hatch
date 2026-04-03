@@ -2,6 +2,7 @@ mod checksum;
 mod cli;
 mod commands;
 mod credentials;
+mod rate_limiter;
 mod storage;
 
 use anyhow::Result;

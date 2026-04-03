@@ -1,8 +1,10 @@
+use crate::rate_limiter::RateLimiter;
 use crate::storage::Storage;
 use anyhow::Result;
 use serde::Serialize;
 
-const MAX_KEYS_LIMIT: i32 = 1000;
+const MAX_KEYS_LIMIT: i32 = 500;
+const REQUESTS_PER_SEC: u32 = 5;
 
 #[derive(Serialize)]
 struct JsonObject {
@@ -34,7 +36,9 @@ pub async fn run(
 ) -> Result<()> {
     let prefix = path.trim_matches('/');
     let capped = std::cmp::min(max_keys, MAX_KEYS_LIMIT);
+    let mut rl = RateLimiter::new(REQUESTS_PER_SEC);
 
+    rl.acquire().await;
     let objects = storage.list(prefix, capped).await.map_err(|e| {
         // Translate S3 403/auth errors into a helpful message
         let msg = e.to_string().to_lowercase();
@@ -85,9 +89,9 @@ mod tests {
 
     #[test]
     fn max_keys_is_clamped_to_limit() {
-        assert_eq!(std::cmp::min(9999, MAX_KEYS_LIMIT), 1000);
+        assert_eq!(std::cmp::min(9999, MAX_KEYS_LIMIT), 500);
         assert_eq!(std::cmp::min(50, MAX_KEYS_LIMIT), 50);
-        assert_eq!(std::cmp::min(1001, MAX_KEYS_LIMIT), 1000);
+        assert_eq!(std::cmp::min(501, MAX_KEYS_LIMIT), 500);
     }
 
     #[test]
@@ -129,6 +133,6 @@ mod tests {
 
     #[test]
     fn max_keys_clamping_at_exact_limit() {
-        assert_eq!(std::cmp::min(1000, MAX_KEYS_LIMIT), 1000);
+        assert_eq!(std::cmp::min(500, MAX_KEYS_LIMIT), 500);
     }
 }

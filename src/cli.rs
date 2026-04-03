@@ -89,8 +89,8 @@ pub enum Commands {
         /// Release path prefix
         #[arg(long)]
         path: String,
-        /// Maximum number of results (default: 100, max: 1000)
-        #[arg(long, default_value = "100", value_parser = clap::value_parser!(i32).range(1..=1000))]
+        /// Maximum number of results (default: 100, max: 500)
+        #[arg(long, default_value = "100", value_parser = clap::value_parser!(i32).range(1..=500))]
         max_keys: i32,
         /// Output as JSON
         #[arg(long)]
@@ -196,16 +196,22 @@ mod tests {
     }
 
     #[test]
-    fn max_keys_accepts_1000() {
-        let cli = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "1000"]).unwrap();
+    fn max_keys_accepts_500() {
+        let cli = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "500"]).unwrap();
         if let Commands::List { max_keys, .. } = cli.command {
-            assert_eq!(max_keys, 1000);
+            assert_eq!(max_keys, 500);
         }
     }
 
     #[test]
-    fn max_keys_rejects_1001() {
-        let err = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "1001"]);
+    fn max_keys_rejects_501() {
+        let err = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "501"]);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn max_keys_rejects_1000() {
+        let err = Cli::try_parse_from(["hatch", "list", "--path", "/r", "--max-keys", "1000"]);
         assert!(err.is_err());
     }
 
