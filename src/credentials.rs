@@ -19,7 +19,8 @@ impl Credentials {
         let public_url = if target_override.is_some() {
             endpoint.clone()
         } else {
-            std::env::var("HATCH_PUBLIC_URL").unwrap_or_else(|_| endpoint.clone())
+            std::env::var("HATCH_PUBLIC_URL")
+                .unwrap_or_else(|_| "https://dl.agora.build".to_string())
         };
 
         Ok(Credentials {
@@ -191,13 +192,13 @@ mod tests {
     }
 
     #[test]
-    fn load_only_endpoint_set_public_url_inherits() {
+    fn load_only_endpoint_set_public_url_defaults_to_dl_agora_build() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        std::env::set_var("HATCH_ENDPOINT", "https://custom.endpoint.com");
+        std::env::set_var("HATCH_ENDPOINT", "https://abc123.r2.cloudflarestorage.com");
         let creds = Credentials::load(None).unwrap();
-        assert_eq!(creds.endpoint, "https://custom.endpoint.com");
-        // public_url inherits endpoint when HATCH_PUBLIC_URL not set
-        assert_eq!(creds.public_url, "https://custom.endpoint.com");
+        assert_eq!(creds.endpoint, "https://abc123.r2.cloudflarestorage.com");
+        // public_url always defaults to dl.agora.build, not the ugly S3 endpoint
+        assert_eq!(creds.public_url, "https://dl.agora.build");
     }
 }
