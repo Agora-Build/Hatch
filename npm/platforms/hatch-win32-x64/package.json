@@ -1,9 +1,0 @@
-{
-  "name": "@agora-build/hatch-win32-x64",
-  "version": "0.1.0",
-  "description": "hatch binary for Windows x64",
-  "os": ["win32"],
-  "cpu": ["x64"],
-  "repository": { "type": "git", "url": "https://github.com/Agora-Build/Hatch" },
-  "license": "MIT"
-}

@@ -5,16 +5,37 @@
   "bin": {
     "hatch": "bin/hatch"
   },
-  "optionalDependencies": {
-    "@agora-build/hatch-linux-x64": "0.1.0",
-    "@agora-build/hatch-linux-arm64": "0.1.0",
-    "@agora-build/hatch-darwin-x64": "0.1.0",
-    "@agora-build/hatch-darwin-arm64": "0.1.0",
-    "@agora-build/hatch-win32-x64": "0.1.0"
+  "scripts": {
+    "postinstall": "node install.js"
   },
+  "files": [
+    "bin/",
+    "install.js"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Agora-Build/Hatch"
+    "url": "git+https://github.com/Agora-Build/Hatch.git"
   },
-  "license": "MIT"
+  "keywords": [
+    "hatch",
+    "s3",
+    "release",
+    "deploy",
+    "cli"
+  ],
+  "author": "Agora Build <build@agora.io>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Agora-Build/Hatch/issues"
+  },
+  "homepage": "https://github.com/Agora-Build/Hatch#readme",
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
 }

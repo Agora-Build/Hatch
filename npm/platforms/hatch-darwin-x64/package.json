@@ -1,9 +1,0 @@
-{
-  "name": "@agora-build/hatch-darwin-x64",
-  "version": "0.1.0",
-  "description": "hatch binary for macOS x64",
-  "os": ["darwin"],
-  "cpu": ["x64"],
-  "repository": { "type": "git", "url": "https://github.com/Agora-Build/Hatch" },
-  "license": "MIT"
-}
