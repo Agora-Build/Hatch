@@ -8,15 +8,15 @@ pub struct Credentials {
 }
 
 impl Credentials {
-    pub fn load(target_override: Option<&str>) -> anyhow::Result<Self> {
+    pub fn load(endpoint_override: Option<&str>) -> anyhow::Result<Self> {
         dotenvy::dotenv().ok();
 
-        let endpoint = target_override
+        let endpoint = endpoint_override
             .map(|t| t.to_string())
             .or_else(|| std::env::var("HATCH_ENDPOINT").ok())
             .unwrap_or_else(|| "https://dl.agora.build".to_string());
 
-        let public_url = if target_override.is_some() {
+        let public_url = if endpoint_override.is_some() {
             endpoint.clone()
         } else {
             std::env::var("HATCH_PUBLIC_URL")
@@ -52,6 +52,8 @@ mod tests {
 
     static ENV_LOCK: Mutex<()> = Mutex::new(());
 
+    // SAFETY: Tests are serialized by ENV_LOCK, so no concurrent env access.
+    // Wrapped in unsafe to prepare for Rust edition 2024 where set_var/remove_var are unsafe.
     fn clear_env() {
         for var in &[
             "HATCH_ACCESS_KEY",
@@ -60,8 +62,12 @@ mod tests {
             "HATCH_ENDPOINT",
             "HATCH_PUBLIC_URL",
         ] {
-            std::env::remove_var(var);
+            unsafe { std::env::remove_var(var) };
         }
+    }
+
+    fn set_env(key: &str, value: &str) {
+        unsafe { std::env::set_var(key, value) };
     }
 
     #[test]
@@ -80,9 +86,9 @@ mod tests {
     fn load_captures_s3_credentials_when_present() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        std::env::set_var("HATCH_ACCESS_KEY", "mykey");
-        std::env::set_var("HATCH_SECRET_KEY", "mysecret");
-        std::env::set_var("HATCH_BUCKET", "mybucket");
+        set_env("HATCH_ACCESS_KEY", "mykey");
+        set_env("HATCH_SECRET_KEY", "mysecret");
+        set_env("HATCH_BUCKET", "mybucket");
         let creds = Credentials::load(None).unwrap();
         assert_eq!(creds.access_key.as_deref(), Some("mykey"));
         assert_eq!(creds.secret_key.as_deref(), Some("mysecret"));
@@ -144,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn target_override_sets_both_endpoint_and_public_url() {
+    fn endpoint_override_sets_both_endpoint_and_public_url() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         let creds = Credentials::load(Some("https://s3.example.com")).unwrap();
@@ -156,8 +162,8 @@ mod tests {
     fn hatch_public_url_is_independent_of_endpoint() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        std::env::set_var("HATCH_ENDPOINT", "https://accountid.r2.cloudflarestorage.com");
-        std::env::set_var("HATCH_PUBLIC_URL", "https://dl.agora.build");
+        set_env("HATCH_ENDPOINT", "https://accountid.r2.cloudflarestorage.com");
+        set_env("HATCH_PUBLIC_URL", "https://dl.agora.build");
         let creds = Credentials::load(None).unwrap();
         assert_eq!(creds.endpoint, "https://accountid.r2.cloudflarestorage.com");
         assert_eq!(creds.public_url, "https://dl.agora.build");
@@ -182,12 +188,12 @@ mod tests {
     }
 
     #[test]
-    fn target_override_ignores_existing_public_url_env() {
+    fn endpoint_override_ignores_existing_public_url_env() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        std::env::set_var("HATCH_PUBLIC_URL", "https://cdn.example.com");
+        set_env("HATCH_PUBLIC_URL", "https://cdn.example.com");
         let creds = Credentials::load(Some("https://override.example.com")).unwrap();
-        // --target should override HATCH_PUBLIC_URL entirely
+        // --endpoint should override HATCH_PUBLIC_URL entirely
         assert_eq!(creds.public_url, "https://override.example.com");
     }
 
@@ -195,7 +201,7 @@ mod tests {
     fn load_only_endpoint_set_public_url_defaults_to_dl_agora_build() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        std::env::set_var("HATCH_ENDPOINT", "https://abc123.r2.cloudflarestorage.com");
+        set_env("HATCH_ENDPOINT", "https://abc123.r2.cloudflarestorage.com");
         let creds = Credentials::load(None).unwrap();
         assert_eq!(creds.endpoint, "https://abc123.r2.cloudflarestorage.com");
         // public_url always defaults to dl.agora.build, not the ugly S3 endpoint

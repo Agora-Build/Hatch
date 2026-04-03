@@ -1,4 +1,4 @@
-use super::{Storage, StorageObject};
+use super::{ListResult, Storage, StorageObject};
 use crate::credentials::Credentials;
 use anyhow::{Context, Result};
 use aws_sdk_s3::primitives::ByteStream;
@@ -41,19 +41,8 @@ impl S3Client {
     }
 
     pub async fn new_anonymous(endpoint: &str, bucket: &str) -> Result<Self> {
-        // Create anonymous credentials (empty access key and secret)
-        let anon_creds = aws_credential_types::Credentials::new(
-            "",
-            "",
-            None,
-            None,
-            "hatch-anonymous",
-        );
-
         let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
-            .credentials_provider(
-                aws_credential_types::provider::SharedCredentialsProvider::new(anon_creds),
-            )
+            .no_credentials()
             .endpoint_url(endpoint)
             .region(aws_config::Region::new("auto"))
             .load()
@@ -115,15 +104,17 @@ impl Storage for S3Client {
         Ok(())
     }
 
-    async fn list(&self, prefix: &str, max_keys: i32) -> Result<Vec<StorageObject>> {
+    async fn list(&self, prefix: &str, max_keys: u32) -> Result<ListResult> {
         let resp = self.client
             .list_objects_v2()
             .bucket(&self.bucket)
             .prefix(prefix)
-            .max_keys(max_keys)
+            .max_keys(max_keys as i32)
             .send()
             .await
             .with_context(|| format!("Failed to list objects under {}", prefix))?;
+
+        let is_truncated = resp.is_truncated().unwrap_or(false);
 
         let objects = resp
             .contents()
@@ -138,7 +129,7 @@ impl Storage for S3Client {
             })
             .collect();
 
-        Ok(objects)
+        Ok(ListResult { objects, is_truncated })
     }
 
     async fn exists(&self, key: &str) -> Result<bool> {

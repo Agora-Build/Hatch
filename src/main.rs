@@ -2,7 +2,7 @@ mod checksum;
 mod cli;
 mod commands;
 mod credentials;
-mod rate_limiter;
+mod path_utils;
 mod storage;
 
 use anyhow::Result;
@@ -12,7 +12,7 @@ use cli::{Cli, Commands};
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let creds = credentials::Credentials::load(cli.target.as_deref())?;
+    let creds = credentials::Credentials::load(cli.endpoint.as_deref())?;
 
     match cli.command {
         Commands::Push { file, path, force } => {

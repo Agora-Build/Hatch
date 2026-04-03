@@ -1124,6 +1124,7 @@ dependencies = [
  "dotenvy",
  "indicatif",
  "md-5",
+ "percent-encoding",
  "reqwest",
  "serde",
  "serde_json",

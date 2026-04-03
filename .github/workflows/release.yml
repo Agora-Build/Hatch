@@ -78,8 +78,9 @@ jobs:
       - name: Stage binary for GitHub Release
         shell: bash
         run: |
-          cp target/${{ matrix.target }}/release/${{ matrix.binary }} \
-             hatch-${{ matrix.target }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+          STAGED="hatch-${{ matrix.target }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}"
+          cp target/${{ matrix.target }}/release/${{ matrix.binary }} "$STAGED"
+          sha256sum "$STAGED" > "$STAGED.sha256"
 
       - name: Copy binary into npm platform package
         shell: bash
@@ -112,6 +113,14 @@ jobs:
           pattern: binary-*
           path: release-binaries/
           merge-multiple: true
+
+      - name: Verify artifact checksums
+        run: |
+          cd release-binaries
+          for f in *.sha256; do
+            echo "Verifying ${f%.sha256}..."
+            sha256sum -c "$f"
+          done
 
       - name: Attach binaries to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -146,14 +155,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          root="$GITHUB_WORKSPACE"
           for pkg_name in hatch-linux-x64 hatch-linux-arm64 hatch-darwin-x64 hatch-darwin-arm64 hatch-win32-x64; do
-            pkg_dir="npm/platforms/$pkg_name"
+            pkg_dir="$root/npm/platforms/$pkg_name"
             # Copy binary from artifact into platform package
-            cp npm-artifacts/$pkg_name/* "$pkg_dir/" 2>/dev/null || true
+            cp "$root/npm-artifacts/$pkg_name"/* "$pkg_dir/" 2>/dev/null || true
             cd "$pkg_dir"
             npm version "$VERSION" --no-git-tag-version --allow-same-version
             npm publish --access public
-            cd -
+            cd "$root"
           done
 
       - name: Update and publish main package

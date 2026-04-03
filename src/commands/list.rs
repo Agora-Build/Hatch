@@ -1,10 +1,8 @@
-use crate::rate_limiter::RateLimiter;
 use crate::storage::Storage;
 use anyhow::Result;
 use serde::Serialize;
 
-const MAX_KEYS_LIMIT: i32 = 500;
-const REQUESTS_PER_SEC: u32 = 5;
+const MAX_KEYS_LIMIT: u32 = 500;
 
 #[derive(Serialize)]
 struct JsonObject {
@@ -31,15 +29,13 @@ fn format_size(bytes: u64) -> String {
 pub async fn run(
     storage: &dyn Storage,
     path: &str,
-    max_keys: i32,
+    max_keys: u32,
     json: bool,
 ) -> Result<()> {
     let prefix = path.trim_matches('/');
     let capped = std::cmp::min(max_keys, MAX_KEYS_LIMIT);
-    let mut rl = RateLimiter::new(REQUESTS_PER_SEC);
 
-    rl.acquire().await;
-    let objects = storage.list(prefix, capped).await.map_err(|e| {
+    let result = storage.list(prefix, capped).await.map_err(|e| {
         // Translate S3 403/auth errors into a helpful message
         let msg = e.to_string().to_lowercase();
         if msg.contains("403") || msg.contains("forbidden") || msg.contains("access denied") {
@@ -51,6 +47,8 @@ pub async fn run(
         }
     })?;
 
+    let objects = &result.objects;
+
     if json {
         let items: Vec<JsonObject> = objects
             .iter()
@@ -61,6 +59,9 @@ pub async fn run(
             })
             .collect();
         println!("{}", serde_json::to_string_pretty(&items)?);
+        if result.is_truncated {
+            eprintln!("Warning: results truncated. Increase --max-keys (up to 500) to see more.");
+        }
         return Ok(());
     }
 
@@ -71,7 +72,7 @@ pub async fn run(
 
     println!("{:<60} {:>12}  {}", "KEY", "SIZE", "LAST MODIFIED");
     println!("{}", "-".repeat(90));
-    for obj in &objects {
+    for obj in objects {
         println!(
             "{:<60} {:>12}  {}",
             obj.key,
@@ -80,6 +81,9 @@ pub async fn run(
         );
     }
     println!("\n{} object(s)", objects.len());
+    if result.is_truncated {
+        println!("(results truncated — increase --max-keys to see more, up to 500)");
+    }
     Ok(())
 }
 

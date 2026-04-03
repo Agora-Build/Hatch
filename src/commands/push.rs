@@ -1,24 +1,8 @@
+use crate::path_utils::{object_key, build_public_url};
 use crate::storage::Storage;
 use anyhow::Result;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::path::Path;
-
-pub fn normalize_prefix(path: &str) -> String {
-    path.trim_matches('/').to_string()
-}
-
-pub fn object_key(path: &str, filename: &str) -> String {
-    format!("{}/{}", normalize_prefix(path), filename)
-}
-
-pub fn build_public_url(base: &str, path: &str, filename: &str) -> String {
-    format!(
-        "{}/{}/{}",
-        base.trim_end_matches('/'),
-        normalize_prefix(path),
-        filename
-    )
-}
 
 pub async fn run(
     storage: &dyn Storage,
@@ -84,82 +68,4 @@ pub async fn run(
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn build_public_url_trims_slashes_correctly() {
-        assert_eq!(
-            build_public_url("https://dl.agora.build", "/release/v1/", "app.zip"),
-            "https://dl.agora.build/release/v1/app.zip"
-        );
-        assert_eq!(
-            build_public_url("https://dl.agora.build/", "release/v1", "app.zip"),
-            "https://dl.agora.build/release/v1/app.zip"
-        );
-    }
-
-    #[test]
-    fn normalize_prefix_strips_leading_and_trailing_slashes() {
-        assert_eq!(normalize_prefix("/release/v1/"), "release/v1");
-        assert_eq!(normalize_prefix("release/v1"), "release/v1");
-        assert_eq!(normalize_prefix("/release/v1"), "release/v1");
-    }
-
-    #[test]
-    fn object_key_combines_prefix_and_filename() {
-        assert_eq!(object_key("/release/v1", "app.zip"), "release/v1/app.zip");
-        assert_eq!(object_key("release/v1/", "app.zip"), "release/v1/app.zip");
-    }
-
-    // --- Edge cases ---
-
-    #[test]
-    fn normalize_prefix_empty_string() {
-        assert_eq!(normalize_prefix(""), "");
-    }
-
-    #[test]
-    fn normalize_prefix_just_slashes() {
-        assert_eq!(normalize_prefix("///"), "");
-    }
-
-    #[test]
-    fn normalize_prefix_deeply_nested() {
-        assert_eq!(
-            normalize_prefix("/a/b/c/d/e/f/"),
-            "a/b/c/d/e/f"
-        );
-    }
-
-    #[test]
-    fn object_key_with_empty_path() {
-        // Empty path produces "/filename" — this is technically valid S3 key
-        assert_eq!(object_key("", "app.zip"), "/app.zip");
-    }
-
-    #[test]
-    fn build_public_url_with_port() {
-        assert_eq!(
-            build_public_url("https://localhost:9000", "/release/v1", "app.zip"),
-            "https://localhost:9000/release/v1/app.zip"
-        );
-    }
-
-    #[test]
-    fn build_public_url_with_empty_path() {
-        assert_eq!(
-            build_public_url("https://dl.agora.build", "", "app.zip"),
-            "https://dl.agora.build//app.zip"
-        );
-    }
-
-    #[test]
-    fn object_key_filename_with_special_chars() {
-        assert_eq!(
-            object_key("/release/v1", "my app (v2.0).tar.gz"),
-            "release/v1/my app (v2.0).tar.gz"
-        );
-    }
-}
+// Path utility tests are in src/path_utils.rs

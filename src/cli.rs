@@ -14,37 +14,24 @@ CREDENTIALS\n\
   HATCH_ACCESS_KEY=<key>       Required for: push, drop\n\
   HATCH_SECRET_KEY=<secret>    Required for: push, drop\n\
   HATCH_BUCKET=<bucket>        Required for: push, drop\n\
-  HATCH_ENDPOINT=<url>         S3 API endpoint  (default: https://dl.agora.build)\n\
-  HATCH_PUBLIC_URL=<url>       Public CDN URL   (default: https://dl.agora.build)\n\
+  HATCH_PUBLIC_URL=<url>       Public CDN URL (default: https://dl.agora.build)\n\
 \n\
   'list' and 'info' work without credentials:\n\
     list  — tries anonymous S3; falls back with a helpful error if bucket is private\n\
     info  — uses HTTP HEAD/GET against HATCH_PUBLIC_URL, no auth required\n\
 \n\
-CLOUDFLARE R2 SETUP\n\
-  1. Cloudflare dashboard → R2 Object Storage → Create bucket\n\
-     Note your bucket name (e.g. 'releases')\n\
-  2. R2 → Manage API Tokens → Create API Token\n\
-     Permissions: Object Read & Write on your bucket\n\
+SETUP\n\
+  1. Create an S3-compatible bucket (e.g. Cloudflare R2, AWS S3)\n\
+  2. Create an API token with Object Read & Write permissions\n\
      Copy the Access Key ID → HATCH_ACCESS_KEY\n\
      Copy the Secret Access Key → HATCH_SECRET_KEY\n\
-  3. R2 → your bucket → Settings → S3 API\n\
-     Copy the endpoint URL → HATCH_ENDPOINT\n\
-     (format: https://<ACCOUNT_ID>.r2.cloudflarestorage.com)\n\
-  4. Optional: connect a custom domain for public CDN access\n\
-     R2 → your bucket → Settings → Public access → Connect domain\n\
-     Set your domain (e.g. https://dl.example.com) → HATCH_PUBLIC_URL\n\
-\n\
-OTHER S3-COMPATIBLE STORAGE\n\
-  Set HATCH_ENDPOINT to any S3-compatible API URL (e.g. https://s3.amazonaws.com),\n\
-  HATCH_BUCKET to your bucket name, and credentials as above.\n\
-  Use --target <endpoint> per-command to override the endpoint without changing .env.\n\
+  3. Set HATCH_BUCKET to your bucket name\n\
+  4. Optional: set HATCH_PUBLIC_URL to your custom CDN domain\n\
 \n\
 EXAMPLE .env\n\
   HATCH_ACCESS_KEY=abc123def456\n\
   HATCH_SECRET_KEY=xyz789secret\n\
   HATCH_BUCKET=releases\n\
-  HATCH_ENDPOINT=https://abc123.r2.cloudflarestorage.com\n\
   HATCH_PUBLIC_URL=https://dl.agora.build\n\
 \n\
 RELEASE PATH CONVENTION\n\
@@ -67,7 +54,7 @@ pub struct Cli {
 
     /// Override the S3-compatible endpoint (overrides HATCH_ENDPOINT and HATCH_PUBLIC_URL)
     #[arg(long, global = true)]
-    pub target: Option<String>,
+    pub endpoint: Option<String>,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -76,7 +63,7 @@ pub enum Commands {
     Push {
         /// Local file to upload
         file: std::path::PathBuf,
-        /// Release path prefix (e.g. /release/product_v1_20260402_build1)
+        /// Release path prefix (e.g. /release/myapp/v1)
         #[arg(long)]
         path: String,
         /// Overwrite the file if it already exists
@@ -100,8 +87,8 @@ pub enum Commands {
         #[arg(long)]
         path: String,
         /// Maximum number of results (default: 100, max: 500)
-        #[arg(long, default_value = "100", value_parser = clap::value_parser!(i32).range(1..=500))]
-        max_keys: i32,
+        #[arg(long, default_value = "100", value_parser = clap::value_parser!(u32).range(1..=500))]
+        max_keys: u32,
         /// Output as JSON
         #[arg(long)]
         json: bool,
@@ -153,7 +140,7 @@ mod tests {
     fn parse_list_with_max_keys() {
         let cli = Cli::try_parse_from(["hatch", "list", "--path", "/release/v1", "--max-keys", "50"]).unwrap();
         if let Commands::List { max_keys, json, .. } = cli.command {
-            assert_eq!(max_keys, 50);
+            assert_eq!(max_keys, 50u32);
             assert!(!json);
         }
     }
@@ -176,11 +163,11 @@ mod tests {
     }
 
     #[test]
-    fn parse_global_target_flag() {
+    fn parse_global_endpoint_flag() {
         let cli = Cli::try_parse_from([
-            "hatch", "push", "./f.zip", "--path", "/r", "--target", "https://s3.example.com",
+            "hatch", "push", "./f.zip", "--path", "/r", "--endpoint", "https://s3.example.com",
         ]).unwrap();
-        assert_eq!(cli.target, Some("https://s3.example.com".to_string()));
+        assert_eq!(cli.endpoint, Some("https://s3.example.com".to_string()));
     }
 
     // --- Edge cases ---
@@ -250,8 +237,8 @@ mod tests {
     }
 
     #[test]
-    fn target_without_subcommand_fails() {
-        let err = Cli::try_parse_from(["hatch", "--target", "https://x.com"]);
+    fn endpoint_without_subcommand_fails() {
+        let err = Cli::try_parse_from(["hatch", "--endpoint", "https://x.com"]);
         assert!(err.is_err());
     }
 

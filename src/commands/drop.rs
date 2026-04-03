@@ -1,9 +1,6 @@
+use crate::path_utils::object_key;
 use crate::storage::Storage;
 use anyhow::Result;
-
-fn object_key(path: &str, filename: &str) -> String {
-    format!("{}/{}", path.trim_matches('/'), filename)
-}
 
 pub async fn run(
     storage: &dyn Storage,
@@ -38,36 +35,15 @@ pub async fn run(
     }
 
     storage.delete(&key).await?;
-    // Best-effort: delete sidecars; ignore errors if they don't exist
-    let _ = storage.delete(&format!("{}.md5", key)).await;
-    let _ = storage.delete(&format!("{}.sha256", key)).await;
+    // Best-effort sidecar cleanup — warn on unexpected failures
+    for ext in &["md5", "sha256"] {
+        if let Err(e) = storage.delete(&format!("{}.{}", key, ext)).await {
+            eprintln!("Warning: failed to delete sidecar {}.{}: {}", key, ext, e);
+        }
+    }
 
     println!("Deleted: {}", key);
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn object_key_strips_path_slashes() {
-        assert_eq!(object_key("/release/v1/", "app.zip"), "release/v1/app.zip");
-        assert_eq!(object_key("release/v1", "app.zip"), "release/v1/app.zip");
-    }
-
-    // --- Edge cases ---
-
-    #[test]
-    fn object_key_deeply_nested_path() {
-        assert_eq!(
-            object_key("/org/product/v2/nightly/", "build.tar.gz"),
-            "org/product/v2/nightly/build.tar.gz"
-        );
-    }
-
-    #[test]
-    fn object_key_with_empty_path() {
-        assert_eq!(object_key("", "app.zip"), "/app.zip");
-    }
-}
+// Path utility tests are in src/path_utils.rs
