@@ -31,13 +31,13 @@ impl Credentials {
         let endpoint = endpoint_override
             .map(|t| t.to_string())
             .or_else(|| std::env::var("HATCH_ENDPOINT").ok())
-            .unwrap_or_else(|| "https://dl.agora.build".to_string());
+            .unwrap_or_else(|| "https://artifacts.agora.build".to_string());
 
         let public_url = if endpoint_override.is_some() {
             endpoint.clone()
         } else {
             std::env::var("HATCH_PUBLIC_URL")
-                .unwrap_or_else(|_| "https://dl.agora.build".to_string())
+                .unwrap_or_else(|_| "https://artifacts.agora.build".to_string())
         };
 
         Ok(Credentials {
@@ -95,8 +95,8 @@ mod tests {
         assert!(creds.access_key.is_none());
         assert!(creds.secret_key.is_none());
         assert!(creds.bucket.is_none());
-        assert_eq!(creds.endpoint, "https://dl.agora.build");
-        assert_eq!(creds.public_url, "https://dl.agora.build");
+        assert_eq!(creds.endpoint, "https://artifacts.agora.build");
+        assert_eq!(creds.public_url, "https://artifacts.agora.build");
     }
 
     #[test]
@@ -115,8 +115,8 @@ mod tests {
     #[test]
     fn require_s3_fails_if_access_key_missing() {
         let creds = Credentials {
-            endpoint: "https://dl.agora.build".into(),
-            public_url: "https://dl.agora.build".into(),
+            endpoint: "https://artifacts.agora.build".into(),
+            public_url: "https://artifacts.agora.build".into(),
             access_key: None,
             secret_key: Some("secret".into()),
             bucket: Some("bucket".into()),
@@ -128,8 +128,8 @@ mod tests {
     #[test]
     fn require_s3_fails_if_secret_key_missing() {
         let creds = Credentials {
-            endpoint: "https://dl.agora.build".into(),
-            public_url: "https://dl.agora.build".into(),
+            endpoint: "https://artifacts.agora.build".into(),
+            public_url: "https://artifacts.agora.build".into(),
             access_key: Some("key".into()),
             secret_key: None,
             bucket: Some("bucket".into()),
@@ -141,8 +141,8 @@ mod tests {
     #[test]
     fn require_s3_fails_if_bucket_missing() {
         let creds = Credentials {
-            endpoint: "https://dl.agora.build".into(),
-            public_url: "https://dl.agora.build".into(),
+            endpoint: "https://artifacts.agora.build".into(),
+            public_url: "https://artifacts.agora.build".into(),
             access_key: Some("key".into()),
             secret_key: Some("secret".into()),
             bucket: None,
@@ -154,8 +154,8 @@ mod tests {
     #[test]
     fn require_s3_succeeds_when_all_present() {
         let creds = Credentials {
-            endpoint: "https://dl.agora.build".into(),
-            public_url: "https://dl.agora.build".into(),
+            endpoint: "https://artifacts.agora.build".into(),
+            public_url: "https://artifacts.agora.build".into(),
             access_key: Some("key".into()),
             secret_key: Some("secret".into()),
             bucket: Some("bucket".into()),
@@ -180,10 +180,10 @@ mod tests {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         set_env("HATCH_ENDPOINT", "https://accountid.r2.cloudflarestorage.com");
-        set_env("HATCH_PUBLIC_URL", "https://dl.agora.build");
+        set_env("HATCH_PUBLIC_URL", "https://artifacts.agora.build");
         let creds = Credentials::load(None, None).unwrap();
         assert_eq!(creds.endpoint, "https://accountid.r2.cloudflarestorage.com");
-        assert_eq!(creds.public_url, "https://dl.agora.build");
+        assert_eq!(creds.public_url, "https://artifacts.agora.build");
     }
 
     // --- Edge cases ---
@@ -194,8 +194,8 @@ mod tests {
         // because the validation is on Option::None, not empty strings.
         // This is intentional: let S3 reject bad credentials, not us.
         let creds = Credentials {
-            endpoint: "https://dl.agora.build".into(),
-            public_url: "https://dl.agora.build".into(),
+            endpoint: "https://artifacts.agora.build".into(),
+            public_url: "https://artifacts.agora.build".into(),
             access_key: Some("".into()),
             secret_key: Some("secret".into()),
             bucket: Some("bucket".into()),
@@ -222,7 +222,7 @@ mod tests {
         let creds = Credentials::load(None, None).unwrap();
         assert_eq!(creds.endpoint, "https://abc123.r2.cloudflarestorage.com");
         // public_url always defaults to dl.agora.build, not the ugly S3 endpoint
-        assert_eq!(creds.public_url, "https://dl.agora.build");
+        assert_eq!(creds.public_url, "https://artifacts.agora.build");
     }
 
     // --- --env-file tests ---

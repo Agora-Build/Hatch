@@ -14,7 +14,7 @@ CREDENTIALS\n\
   HATCH_ACCESS_KEY=<key>       Required for: push, drop\n\
   HATCH_SECRET_KEY=<secret>    Required for: push, drop\n\
   HATCH_BUCKET=<bucket>        Required for: push, drop\n\
-  HATCH_PUBLIC_URL=<url>       Public CDN URL (default: https://dl.agora.build)\n\
+  HATCH_PUBLIC_URL=<url>       Public CDN URL (default: https://artifacts.agora.build)\n\
 \n\
   'list' and 'info' work without credentials:\n\
     list  — tries anonymous S3; falls back with a helpful error if bucket is private\n\
@@ -32,7 +32,7 @@ EXAMPLE .env\n\
   HATCH_ACCESS_KEY=abc123def456\n\
   HATCH_SECRET_KEY=xyz789secret\n\
   HATCH_BUCKET=releases\n\
-  HATCH_PUBLIC_URL=https://dl.agora.build\n\
+  HATCH_PUBLIC_URL=https://artifacts.agora.build\n\
 \n\
 RELEASE PATH CONVENTION\n\
   /release/<product>/<major_version>/\n\
@@ -43,7 +43,7 @@ RELEASE PATH CONVENTION\n\
   e.g. myapp_v1.0_build42.zip\n\
 \n\
   Full URL result:\n\
-  https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip\n\
+  https://artifacts.agora.build/release/myapp/v1/myapp_v1.0_build42.zip\n\
 \n\
   Push example:\n\
   hatch push myapp_v1.0_build42.zip --path /release/myapp/v1"

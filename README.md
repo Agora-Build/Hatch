@@ -7,7 +7,7 @@ Hatch uploads, manages, and distributes files in versioned release paths on S3-c
 ## Install
 
 ```bash
-curl -fsSL https://dl.agora.build/hatch/install.sh | bash
+curl -fsSL https://artifacts.agora.build/hatch/install.sh | bash
 ```
 
 Or via npm:
@@ -36,7 +36,7 @@ EOF
 
 # 2. Upload a file
 hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
-# => https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
+# => https://artifacts.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
 
 # 3. List files at a path
 hatch list --path /release/myapp/v1
@@ -84,7 +84,7 @@ Credentials are loaded in this order (highest priority first):
 HATCH_ACCESS_KEY=<key>       # Required for: push, drop
 HATCH_SECRET_KEY=<secret>    # Required for: push, drop
 HATCH_BUCKET=<bucket>        # Required for: push, drop
-HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://dl.agora.build)
+HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://artifacts.agora.build)
 ```
 
 You can keep shared credentials in `~/.config/hatch/.env` and override per-project with a local `.env`, or use `--env-file` to point at a specific config:
@@ -113,7 +113,7 @@ File names should include full version and build info:
 
 ```
 hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
-# => https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
+# => https://artifacts.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
 ```
 
 ## Features

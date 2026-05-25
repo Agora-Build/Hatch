@@ -13,7 +13,7 @@ npm install -g @agora-build/hatch
 Or via shell script:
 
 ```bash
-curl -fsSL https://dl.agora.build/hatch/install.sh | bash
+curl -fsSL https://artifacts.agora.build/hatch/install.sh | bash
 ```
 
 Both download a prebuilt binary for your platform (linux-x64, linux-arm64, darwin-x64, darwin-arm64, win32-x64).
@@ -28,7 +28,7 @@ export HATCH_BUCKET=releases
 
 # Upload a file
 hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
-# => https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
+# => https://artifacts.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
 
 # List files
 hatch list --path /release/myapp/v1
@@ -60,7 +60,7 @@ hatch drop --path <path> --dry-run        # Preview what would be deleted
 HATCH_ACCESS_KEY=<key>       # Required for: push, drop
 HATCH_SECRET_KEY=<secret>    # Required for: push, drop
 HATCH_BUCKET=<bucket>        # Required for: push, drop
-HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://dl.agora.build)
+HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://artifacts.agora.build)
 ```
 
 Config priority: env vars > `--env-file` > local `.env` > `~/.config/hatch/.env`
