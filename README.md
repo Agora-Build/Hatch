@@ -46,19 +46,27 @@ hatch info myapp_v1.0_build42.zip --path /release/myapp/v1
 
 # 5. Delete a file
 hatch drop myapp_v1.0_build42.zip --path /release/myapp/v1
+
+# 6. Batch delete (e.g. clean up old jobs)
+hatch drop --path /jobs/13125 --yes                          # everything under jobs/13125/
+hatch drop --path /jobs --filter "^jobs/131" --yes           # regex filter
+hatch drop --path /jobs --filter "^jobs/131" --dry-run       # preview first
 ```
 
 ## Commands
 
 ```bash
-hatch push <file> --path <path>         # Upload a file (auto-generates .md5 and .sha256 sidecars)
-hatch push <file> --path <path> --force # Overwrite if exists
-hatch list --path <path>                # List files at a release path
-hatch list --path <path> --json         # List as JSON
-hatch list --path <path> --max-keys 50  # Limit results (max 500)
-hatch info <file> --path <path>         # Show metadata, size, and checksums
-hatch drop <file> --path <path>         # Delete a file (interactive confirmation)
-hatch drop <file> --path <path> --yes   # Skip confirmation (for CI)
+hatch push <file> --path <path>           # Upload a file (auto-generates .md5 and .sha256 sidecars)
+hatch push <file> --path <path> --force   # Overwrite if exists
+hatch list --path <path>                  # List files at a release path
+hatch list --path <path> --json           # List as JSON
+hatch list --path <path> --max-keys 50    # Limit results (max 500)
+hatch info <file> --path <path>           # Show metadata, size, and checksums
+hatch drop <file> --path <path>           # Delete a single file
+hatch drop <file> --path <path> --yes     # Skip confirmation (for CI)
+hatch drop --path <path> --yes            # Batch delete everything under path
+hatch drop --path <path> --filter <regex> # Batch delete with regex filter on keys
+hatch drop --path <path> --dry-run        # Preview what would be deleted
 ```
 
 `push` and `drop` require credentials. `list` and `info` work without credentials on public buckets.
@@ -102,6 +110,8 @@ hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
 - Automatic MD5 and SHA256 checksum sidecar generation on push
 - Overwrite protection (`--force` to override)
 - Safe delete with confirmation prompt (`--yes` for CI)
+- Batch delete by prefix with optional regex filtering (`--filter`)
+- Dry run mode to preview batch operations (`--dry-run`)
 - JSON output for `list` (`--json`)
 - Truncation warning when results exceed `--max-keys`
 - Anonymous access for `list` and `info` on public buckets

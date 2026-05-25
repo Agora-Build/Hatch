@@ -43,13 +43,15 @@ hatch drop myapp_v1.0_build42.zip --path /release/myapp/v1
 ## Commands
 
 ```bash
-hatch push <file> --path <path>         # Upload (auto-generates .md5 and .sha256 sidecars)
-hatch push <file> --path <path> --force # Overwrite if exists
-hatch list --path <path>                # List files
-hatch list --path <path> --json         # List as JSON
-hatch info <file> --path <path>         # Show metadata and checksums
-hatch drop <file> --path <path>         # Delete (interactive confirmation)
-hatch drop <file> --path <path> --yes   # Skip confirmation (for CI)
+hatch push <file> --path <path>           # Upload (auto-generates .md5 and .sha256 sidecars)
+hatch push <file> --path <path> --force   # Overwrite if exists
+hatch list --path <path>                  # List files
+hatch list --path <path> --json           # List as JSON
+hatch info <file> --path <path>           # Show metadata and checksums
+hatch drop <file> --path <path>           # Delete a single file
+hatch drop --path <path> --yes            # Batch delete everything under path
+hatch drop --path <path> --filter <regex> # Batch delete with regex filter
+hatch drop --path <path> --dry-run        # Preview what would be deleted
 ```
 
 ## Configuration
