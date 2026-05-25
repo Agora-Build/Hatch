@@ -12,7 +12,10 @@ use cli::{Cli, Commands};
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let creds = credentials::Credentials::load(cli.endpoint.as_deref())?;
+    let creds = credentials::Credentials::load(
+        cli.endpoint.as_deref(),
+        cli.env_file.as_deref(),
+    )?;
 
     match cli.command {
         Commands::Push { file, path, force } => {

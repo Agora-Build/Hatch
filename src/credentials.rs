@@ -8,11 +8,18 @@ pub struct Credentials {
 }
 
 impl Credentials {
-    pub fn load(endpoint_override: Option<&str>) -> anyhow::Result<Self> {
-        // Load global config first (~/.config/hatch/.env), then local .env overrides.
-        // dotenvy does not overwrite existing env vars, so we load local first
-        // (higher priority) then global (lower priority, fills in gaps).
-        dotenvy::dotenv().ok();
+    pub fn load(
+        endpoint_override: Option<&str>,
+        env_file: Option<&std::path::Path>,
+    ) -> anyhow::Result<Self> {
+        // Priority (highest first): env vars > --env-file > local .env > ~/.config/hatch/.env
+        // dotenvy does not overwrite existing env vars, so load highest priority first.
+        if let Some(path) = env_file {
+            dotenvy::from_path(path)
+                .map_err(|e| anyhow::anyhow!("Failed to load {}: {}", path.display(), e))?;
+        } else {
+            dotenvy::dotenv().ok();
+        }
         if let Some(config_dir) = dirs::config_dir() {
             let global_env = config_dir.join("hatch").join(".env");
             if global_env.exists() {
@@ -83,7 +90,7 @@ mod tests {
     fn load_succeeds_without_s3_credentials() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials::load(None, None).unwrap();
         assert!(creds.access_key.is_none());
         assert!(creds.secret_key.is_none());
         assert!(creds.bucket.is_none());
@@ -98,7 +105,7 @@ mod tests {
         set_env("HATCH_ACCESS_KEY", "mykey");
         set_env("HATCH_SECRET_KEY", "mysecret");
         set_env("HATCH_BUCKET", "mybucket");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials::load(None, None).unwrap();
         assert_eq!(creds.access_key.as_deref(), Some("mykey"));
         assert_eq!(creds.secret_key.as_deref(), Some("mysecret"));
         assert_eq!(creds.bucket.as_deref(), Some("mybucket"));
@@ -162,7 +169,7 @@ mod tests {
     fn endpoint_override_sets_both_endpoint_and_public_url() {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
-        let creds = Credentials::load(Some("https://s3.example.com")).unwrap();
+        let creds = Credentials::load(Some("https://s3.example.com"), None).unwrap();
         assert_eq!(creds.endpoint, "https://s3.example.com");
         assert_eq!(creds.public_url, "https://s3.example.com");
     }
@@ -173,7 +180,7 @@ mod tests {
         clear_env();
         set_env("HATCH_ENDPOINT", "https://accountid.r2.cloudflarestorage.com");
         set_env("HATCH_PUBLIC_URL", "https://dl.agora.build");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials::load(None, None).unwrap();
         assert_eq!(creds.endpoint, "https://accountid.r2.cloudflarestorage.com");
         assert_eq!(creds.public_url, "https://dl.agora.build");
     }
@@ -201,7 +208,7 @@ mod tests {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         set_env("HATCH_PUBLIC_URL", "https://cdn.example.com");
-        let creds = Credentials::load(Some("https://override.example.com")).unwrap();
+        let creds = Credentials::load(Some("https://override.example.com"), None).unwrap();
         // --endpoint should override HATCH_PUBLIC_URL entirely
         assert_eq!(creds.public_url, "https://override.example.com");
     }
@@ -211,7 +218,7 @@ mod tests {
         let _lock = ENV_LOCK.lock().unwrap();
         clear_env();
         set_env("HATCH_ENDPOINT", "https://abc123.r2.cloudflarestorage.com");
-        let creds = Credentials::load(None).unwrap();
+        let creds = Credentials::load(None, None).unwrap();
         assert_eq!(creds.endpoint, "https://abc123.r2.cloudflarestorage.com");
         // public_url always defaults to dl.agora.build, not the ugly S3 endpoint
         assert_eq!(creds.public_url, "https://dl.agora.build");

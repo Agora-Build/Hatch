@@ -52,6 +52,10 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
 
+    /// Load credentials from a specific .env file (or set HATCH_ENV_FILE)
+    #[arg(long, global = true, env = "HATCH_ENV_FILE")]
+    pub env_file: Option<std::path::PathBuf>,
+
     /// Override the S3-compatible endpoint (overrides HATCH_ENDPOINT and HATCH_PUBLIC_URL)
     #[arg(long, global = true)]
     pub endpoint: Option<String>,
