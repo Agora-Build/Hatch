@@ -24,5 +24,9 @@ pub trait Storage: Send + Sync {
     async fn upload_bytes(&self, key: &str, content: &[u8]) -> Result<()>;
     async fn delete(&self, key: &str) -> Result<()>;
     async fn list(&self, prefix: &str, max_keys: u32) -> Result<ListResult>;
+    /// List all objects under a prefix, handling pagination automatically.
+    async fn list_all(&self, prefix: &str) -> Result<Vec<StorageObject>>;
+    /// Delete multiple objects in batch. Returns the number of objects deleted.
+    async fn delete_batch(&self, keys: &[String]) -> Result<u32>;
     async fn exists(&self, key: &str) -> Result<bool>;
 }

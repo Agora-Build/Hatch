@@ -19,9 +19,12 @@ async fn main() -> Result<()> {
             let storage = storage::s3::S3Client::new_authenticated(&creds).await?;
             commands::push::run(&storage, &creds.public_url, &file, &path, force).await?;
         }
-        Commands::Drop { file, path, yes } => {
+        Commands::Drop { file, path, filter, dry_run, yes } => {
             let storage = storage::s3::S3Client::new_authenticated(&creds).await?;
-            commands::drop::run(&storage, &file, &path, yes).await?;
+            match file {
+                Some(f) => commands::drop::run_single(&storage, &f, &path, yes).await?,
+                None => commands::drop::run_batch(&storage, &path, filter.as_deref(), dry_run, yes).await?,
+            }
         }
         Commands::List { path, max_keys, json } => {
             // Use authenticated client if credentials present, otherwise anonymous

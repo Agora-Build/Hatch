@@ -132,6 +132,75 @@ impl Storage for S3Client {
         Ok(ListResult { objects, is_truncated })
     }
 
+    async fn list_all(&self, prefix: &str) -> Result<Vec<StorageObject>> {
+        let mut all_objects = Vec::new();
+        let mut continuation_token: Option<String> = None;
+
+        loop {
+            let mut req = self.client
+                .list_objects_v2()
+                .bucket(&self.bucket)
+                .prefix(prefix)
+                .max_keys(1000);
+
+            if let Some(token) = &continuation_token {
+                req = req.continuation_token(token);
+            }
+
+            let resp = req.send().await
+                .with_context(|| format!("Failed to list objects under {}", prefix))?;
+
+            for obj in resp.contents() {
+                all_objects.push(StorageObject {
+                    key: obj.key().unwrap_or("").to_string(),
+                    size: obj.size().unwrap_or(0) as u64,
+                    last_modified: obj
+                        .last_modified()
+                        .map(|t| t.to_string())
+                        .unwrap_or_default(),
+                });
+            }
+
+            if resp.is_truncated().unwrap_or(false) {
+                continuation_token = resp.next_continuation_token().map(|s| s.to_string());
+            } else {
+                break;
+            }
+        }
+
+        Ok(all_objects)
+    }
+
+    async fn delete_batch(&self, keys: &[String]) -> Result<u32> {
+        use aws_sdk_s3::types::{Delete, ObjectIdentifier};
+
+        let mut deleted = 0u32;
+
+        for chunk in keys.chunks(1000) {
+            let objects: Vec<ObjectIdentifier> = chunk
+                .iter()
+                .map(|k| ObjectIdentifier::builder().key(k).build().unwrap())
+                .collect();
+
+            let delete = Delete::builder()
+                .set_objects(Some(objects))
+                .build()
+                .with_context(|| "Failed to build delete request")?;
+
+            self.client
+                .delete_objects()
+                .bucket(&self.bucket)
+                .delete(delete)
+                .send()
+                .await
+                .with_context(|| format!("Failed to batch delete {} objects", chunk.len()))?;
+
+            deleted += chunk.len() as u32;
+        }
+
+        Ok(deleted)
+    }
+
     async fn exists(&self, key: &str) -> Result<bool> {
         use aws_sdk_s3::error::SdkError;
         match self.client

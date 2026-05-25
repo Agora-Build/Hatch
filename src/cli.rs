@@ -70,13 +70,24 @@ pub enum Commands {
         #[arg(long)]
         force: bool,
     },
-    /// Delete a file from a release path (requires confirmation)
+    /// Delete files from a release path (requires confirmation)
+    ///
+    /// Single file:  hatch drop myfile.zip --path /release/v1
+    /// Batch delete:  hatch drop --path /jobs/13125 --yes
+    /// With filter:   hatch drop --path /jobs --filter "jobs/(131|132)" --yes
+    /// Dry run:       hatch drop --path /jobs/13125 --dry-run
     Drop {
-        /// Filename to delete
-        file: String,
+        /// Filename to delete (omit for batch delete of entire path)
+        file: Option<String>,
         /// Release path prefix
         #[arg(long)]
         path: String,
+        /// Regex filter applied to object keys
+        #[arg(long)]
+        filter: Option<String>,
+        /// Show what would be deleted without deleting
+        #[arg(long)]
+        dry_run: bool,
         /// Skip the confirmation prompt (for CI use)
         #[arg(long)]
         yes: bool,
@@ -131,7 +142,7 @@ mod tests {
     fn parse_drop_command_with_yes() {
         let cli = Cli::try_parse_from(["hatch", "drop", "file.zip", "--path", "/release/v1", "--yes"]).unwrap();
         if let Commands::Drop { file, yes, .. } = cli.command {
-            assert_eq!(file, "file.zip");
+            assert_eq!(file, Some("file.zip".to_string()));
             assert!(yes);
         }
     }
@@ -255,6 +266,56 @@ mod tests {
         let cli = Cli::try_parse_from(["hatch", "drop", "f.zip", "--path", "/r"]).unwrap();
         if let Commands::Drop { yes, .. } = cli.command {
             assert!(!yes);
+        }
+    }
+
+    // --- Batch drop ---
+
+    #[test]
+    fn drop_batch_mode_without_file() {
+        let cli = Cli::try_parse_from(["hatch", "drop", "--path", "/jobs/13125", "--yes"]).unwrap();
+        if let Commands::Drop { file, path, filter, dry_run, yes } = cli.command {
+            assert!(file.is_none());
+            assert_eq!(path, "/jobs/13125");
+            assert!(filter.is_none());
+            assert!(!dry_run);
+            assert!(yes);
+        } else {
+            panic!("expected Drop");
+        }
+    }
+
+    #[test]
+    fn drop_batch_with_filter() {
+        let cli = Cli::try_parse_from([
+            "hatch", "drop", "--path", "/jobs", "--filter", "^jobs/131", "--yes",
+        ]).unwrap();
+        if let Commands::Drop { file, filter, .. } = cli.command {
+            assert!(file.is_none());
+            assert_eq!(filter, Some("^jobs/131".to_string()));
+        }
+    }
+
+    #[test]
+    fn drop_batch_dry_run() {
+        let cli = Cli::try_parse_from([
+            "hatch", "drop", "--path", "/jobs/13125", "--dry-run",
+        ]).unwrap();
+        if let Commands::Drop { file, dry_run, yes, .. } = cli.command {
+            assert!(file.is_none());
+            assert!(dry_run);
+            assert!(!yes);
+        }
+    }
+
+    #[test]
+    fn drop_single_file_ignores_filter() {
+        let cli = Cli::try_parse_from([
+            "hatch", "drop", "app.zip", "--path", "/release/v1", "--filter", ".*",
+        ]).unwrap();
+        if let Commands::Drop { file, filter, .. } = cli.command {
+            assert_eq!(file, Some("app.zip".to_string()));
+            assert_eq!(filter, Some(".*".to_string()));
         }
     }
 }
