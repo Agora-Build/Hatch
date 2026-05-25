@@ -6,28 +6,28 @@ Hatch uploads, manages, and distributes files in versioned release paths on S3-c
 
 ## Install
 
-**Shell (Linux/macOS):**
-
-```sh
+```bash
 curl -fsSL https://dl.agora.build/hatch/install.sh | bash
 ```
 
-**npm:**
+Or via npm:
 
-```sh
+```bash
 npm install -g @agora-build/hatch
 ```
 
-**From source:**
+Both download a prebuilt binary for your platform (linux-x64, linux-arm64, darwin-x64, darwin-arm64, win32-x64).
 
-```sh
+From source:
+
+```bash
 cargo install --git https://github.com/Agora-Build/Hatch
 ```
 
 ## Quick Start
 
-```sh
-# 1. Create a .env file with your credentials
+```bash
+# 1. Configure credentials
 cat > .env <<EOF
 HATCH_ACCESS_KEY=your_access_key
 HATCH_SECRET_KEY=your_secret_key
@@ -38,10 +38,10 @@ EOF
 hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
 # => https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
 
-# 3. List files
+# 3. List files at a path
 hatch list --path /release/myapp/v1
 
-# 4. Check file metadata and checksums
+# 4. Inspect a file (metadata + checksums)
 hatch info myapp_v1.0_build42.zip --path /release/myapp/v1
 
 # 5. Delete a file
@@ -50,20 +50,24 @@ hatch drop myapp_v1.0_build42.zip --path /release/myapp/v1
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `push`  | Upload a file to a release path |
-| `drop`  | Delete a file (requires confirmation) |
-| `list`  | List files at a release path |
-| `info`  | Show metadata and checksums for a file |
+```bash
+hatch push <file> --path <path>         # Upload a file (auto-generates .md5 and .sha256 sidecars)
+hatch push <file> --path <path> --force # Overwrite if exists
+hatch list --path <path>                # List files at a release path
+hatch list --path <path> --json         # List as JSON
+hatch list --path <path> --max-keys 50  # Limit results (max 500)
+hatch info <file> --path <path>         # Show metadata, size, and checksums
+hatch drop <file> --path <path>         # Delete a file (interactive confirmation)
+hatch drop <file> --path <path> --yes   # Skip confirmation (for CI)
+```
 
-`push` and `drop` require credentials. `list` and `info` work without credentials against public buckets.
+`push` and `drop` require credentials. `list` and `info` work without credentials on public buckets.
 
 ## Configuration
 
 Add to a `.env` file in your working directory, or export as environment variables:
 
-```sh
+```bash
 HATCH_ACCESS_KEY=<key>       # Required for: push, drop
 HATCH_SECRET_KEY=<secret>    # Required for: push, drop
 HATCH_BUCKET=<bucket>        # Required for: push, drop
@@ -74,6 +78,8 @@ HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://dl.agora.build)
 
 1. Create an S3-compatible bucket (e.g. Cloudflare R2, AWS S3)
 2. Create an API token with Object Read & Write permissions
+   - **Cloudflare R2:** R2 Object Storage → Manage R2 API Tokens → Create API Token
+   - **AWS S3:** IAM → Create access key
 3. Copy the Access Key ID and Secret Access Key into your `.env`
 4. Set `HATCH_BUCKET` to your bucket name
 5. Optionally set `HATCH_PUBLIC_URL` to your custom CDN domain
@@ -87,12 +93,6 @@ HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://dl.agora.build)
 File names should include full version and build info:
 
 ```
-<name>_v<version>_<build>.zip
-```
-
-Example:
-
-```
 hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
 # => https://dl.agora.build/release/myapp/v1/myapp_v1.0_build42.zip
 ```
@@ -103,7 +103,9 @@ hatch push myapp_v1.0_build42.zip --path /release/myapp/v1
 - Overwrite protection (`--force` to override)
 - Safe delete with confirmation prompt (`--yes` for CI)
 - JSON output for `list` (`--json`)
+- Truncation warning when results exceed `--max-keys`
 - Anonymous access for `list` and `info` on public buckets
+- URL-encoded filenames in output URLs
 - Works with any S3-compatible storage
 
 ## License
