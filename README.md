@@ -9,7 +9,7 @@ Hatch uploads, manages, and distributes files in versioned release paths on S3-c
 **Shell (Linux/macOS):**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Agora-Build/Hatch/master/install.sh | sh
+curl -fsSL https://dl.agora.build/hatch/install.sh | bash
 ```
 
 **npm:**

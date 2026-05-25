@@ -10,7 +10,7 @@ const os = require("os");
 
 const pkg = require("./package.json");
 const VERSION = `v${pkg.version}`;
-const REPO = "Agora-Build/Hatch";
+const BASE_URL = "https://dl.agora.build/hatch/releases";
 const BIN_DIR = path.join(__dirname, "bin");
 const BIN_NAME = os.platform() === "win32" ? "hatch.exe" : "hatch";
 const BIN_PATH = path.join(BIN_DIR, BIN_NAME);
@@ -38,7 +38,7 @@ function getPlatformKey() {
 
 function getDownloadUrl() {
   const platformKey = getPlatformKey();
-  return `https://github.com/${REPO}/releases/download/${VERSION}/hatch-${VERSION}-${platformKey}.tar.gz`;
+  return `${BASE_URL}/${VERSION}/hatch-${VERSION}-${platformKey}.tar.gz`;
 }
 
 function fetch(url, redirects = 0) {
@@ -90,6 +90,6 @@ install().catch((err) => {
   console.error(`Failed to install hatch: ${err.message}`);
   console.error("");
   console.error("You can manually download the binary from:");
-  console.error(`  https://github.com/${REPO}/releases/tag/${VERSION}`);
+  console.error(`  https://github.com/Agora-Build/Hatch/releases/tag/${VERSION}`);
   process.exit(1);
 });
