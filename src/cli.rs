@@ -9,7 +9,7 @@ use clap::Parser;
 on S3-compatible storage, with automatic checksum generation.\n\
 \n\
 CREDENTIALS\n\
-  Add these to a .env file in your working directory, or export as env vars:\n\
+  Add to ~/.config/hatch/.env (global) or .env in your working directory (overrides global):\n\
 \n\
   HATCH_ACCESS_KEY=<key>       Required for: push, drop\n\
   HATCH_SECRET_KEY=<secret>    Required for: push, drop\n\

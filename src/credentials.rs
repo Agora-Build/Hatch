@@ -9,7 +9,16 @@ pub struct Credentials {
 
 impl Credentials {
     pub fn load(endpoint_override: Option<&str>) -> anyhow::Result<Self> {
+        // Load global config first (~/.config/hatch/.env), then local .env overrides.
+        // dotenvy does not overwrite existing env vars, so we load local first
+        // (higher priority) then global (lower priority, fills in gaps).
         dotenvy::dotenv().ok();
+        if let Some(config_dir) = dirs::config_dir() {
+            let global_env = config_dir.join("hatch").join(".env");
+            if global_env.exists() {
+                dotenvy::from_path(&global_env).ok();
+            }
+        }
 
         let endpoint = endpoint_override
             .map(|t| t.to_string())
