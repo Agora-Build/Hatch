@@ -78,6 +78,7 @@ pub enum Commands {
     /// Dry run:       hatch drop --path /jobs/13125 --dry-run
     Drop {
         /// Filename to delete (omit for batch delete of entire path)
+        #[arg(required = false)]
         file: Option<String>,
         /// Release path prefix
         #[arg(long)]
