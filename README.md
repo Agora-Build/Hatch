@@ -7,7 +7,7 @@ Hatch uploads, manages, and distributes files in versioned release paths on S3-c
 ## Install
 
 ```bash
-curl -fsSL https://artifacts.agora.build/hatch/install.sh | bash
+curl -fsSL https://dl.agora.build/hatch/install.sh | bash
 ```
 
 Or via npm:

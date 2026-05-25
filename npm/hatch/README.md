@@ -13,7 +13,7 @@ npm install -g @agora-build/hatch
 Or via shell script:
 
 ```bash
-curl -fsSL https://artifacts.agora.build/hatch/install.sh | bash
+curl -fsSL https://dl.agora.build/hatch/install.sh | bash
 ```
 
 Both download a prebuilt binary for your platform (linux-x64, linux-arm64, darwin-x64, darwin-arm64, win32-x64).
