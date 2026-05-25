@@ -73,13 +73,24 @@ hatch drop --path <path> --dry-run        # Preview what would be deleted
 
 ## Configuration
 
-Add to a `.env` file in your working directory, or export as environment variables:
+Credentials are loaded in this order (highest priority first):
+
+1. **Environment variables** — always win
+2. **`--env-file <path>`** or **`HATCH_ENV_FILE`** — explicit file
+3. **Local `.env`** — in working directory (skipped if `--env-file` is set)
+4. **`~/.config/hatch/.env`** — global defaults
 
 ```bash
 HATCH_ACCESS_KEY=<key>       # Required for: push, drop
 HATCH_SECRET_KEY=<secret>    # Required for: push, drop
 HATCH_BUCKET=<bucket>        # Required for: push, drop
 HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://dl.agora.build)
+```
+
+You can keep shared credentials in `~/.config/hatch/.env` and override per-project with a local `.env`, or use `--env-file` to point at a specific config:
+
+```bash
+hatch list --path /release --env-file ~/.config/hatch/artifacts.env
 ```
 
 ## Setup

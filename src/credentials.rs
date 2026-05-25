@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Credentials {
     pub endpoint: String,
     pub public_url: String,
@@ -222,5 +223,66 @@ mod tests {
         assert_eq!(creds.endpoint, "https://abc123.r2.cloudflarestorage.com");
         // public_url always defaults to dl.agora.build, not the ugly S3 endpoint
         assert_eq!(creds.public_url, "https://dl.agora.build");
+    }
+
+    // --- --env-file tests ---
+
+    #[test]
+    fn load_from_env_file() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        let dir = tempfile::tempdir().unwrap();
+        let env_path = dir.path().join(".env");
+        std::fs::write(&env_path, "HATCH_ACCESS_KEY=filekey\nHATCH_SECRET_KEY=filesecret\nHATCH_BUCKET=filebucket\n").unwrap();
+        let creds = Credentials::load(None, Some(&env_path)).unwrap();
+        assert_eq!(creds.access_key.as_deref(), Some("filekey"));
+        assert_eq!(creds.secret_key.as_deref(), Some("filesecret"));
+        assert_eq!(creds.bucket.as_deref(), Some("filebucket"));
+    }
+
+    #[test]
+    fn env_var_overrides_env_file() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        set_env("HATCH_BUCKET", "from_env");
+        let dir = tempfile::tempdir().unwrap();
+        let env_path = dir.path().join(".env");
+        std::fs::write(&env_path, "HATCH_ACCESS_KEY=filekey\nHATCH_SECRET_KEY=filesecret\nHATCH_BUCKET=from_file\n").unwrap();
+        let creds = Credentials::load(None, Some(&env_path)).unwrap();
+        // env var wins over file
+        assert_eq!(creds.bucket.as_deref(), Some("from_env"));
+        // file fills in the rest
+        assert_eq!(creds.access_key.as_deref(), Some("filekey"));
+    }
+
+    #[test]
+    fn env_file_not_found_returns_error() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        let result = Credentials::load(None, Some(std::path::Path::new("/nonexistent/.env")));
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to load"));
+    }
+
+    #[test]
+    fn env_file_with_public_url() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        let dir = tempfile::tempdir().unwrap();
+        let env_path = dir.path().join(".env");
+        std::fs::write(&env_path, "HATCH_PUBLIC_URL=https://artifacts.agora.build\n").unwrap();
+        let creds = Credentials::load(None, Some(&env_path)).unwrap();
+        assert_eq!(creds.public_url, "https://artifacts.agora.build");
+    }
+
+    #[test]
+    fn endpoint_override_wins_over_env_file() {
+        let _lock = ENV_LOCK.lock().unwrap();
+        clear_env();
+        let dir = tempfile::tempdir().unwrap();
+        let env_path = dir.path().join(".env");
+        std::fs::write(&env_path, "HATCH_ENDPOINT=https://from-file.example.com\n").unwrap();
+        let creds = Credentials::load(Some("https://override.example.com"), Some(&env_path)).unwrap();
+        assert_eq!(creds.endpoint, "https://override.example.com");
     }
 }

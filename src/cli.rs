@@ -323,4 +323,41 @@ mod tests {
             assert_eq!(filter, Some(".*".to_string()));
         }
     }
+
+    // --- --env-file flag ---
+
+    #[test]
+    fn env_file_flag_parsed() {
+        let cli = Cli::try_parse_from([
+            "hatch", "--env-file", "/path/to/.env", "list", "--path", "/r",
+        ]).unwrap();
+        assert_eq!(cli.env_file, Some(std::path::PathBuf::from("/path/to/.env")));
+    }
+
+    #[test]
+    fn env_file_flag_works_with_all_commands() {
+        // push
+        let cli = Cli::try_parse_from([
+            "hatch", "--env-file", "a.env", "push", "f.zip", "--path", "/r",
+        ]).unwrap();
+        assert_eq!(cli.env_file, Some(std::path::PathBuf::from("a.env")));
+
+        // drop
+        let cli = Cli::try_parse_from([
+            "hatch", "--env-file", "b.env", "drop", "--path", "/r", "--yes",
+        ]).unwrap();
+        assert_eq!(cli.env_file, Some(std::path::PathBuf::from("b.env")));
+
+        // info
+        let cli = Cli::try_parse_from([
+            "hatch", "--env-file", "c.env", "info", "f.zip", "--path", "/r",
+        ]).unwrap();
+        assert_eq!(cli.env_file, Some(std::path::PathBuf::from("c.env")));
+    }
+
+    #[test]
+    fn env_file_defaults_to_none() {
+        let cli = Cli::try_parse_from(["hatch", "list", "--path", "/r"]).unwrap();
+        assert!(cli.env_file.is_none());
+    }
 }

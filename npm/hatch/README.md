@@ -63,7 +63,11 @@ HATCH_BUCKET=<bucket>        # Required for: push, drop
 HATCH_PUBLIC_URL=<url>       # Public CDN URL (default: https://dl.agora.build)
 ```
 
-Add to a `.env` file or export as environment variables.
+Config priority: env vars > `--env-file` > local `.env` > `~/.config/hatch/.env`
+
+```bash
+hatch list --path /release --env-file ~/.config/hatch/artifacts.env
+```
 
 ## Documentation
 
