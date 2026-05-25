@@ -20,11 +20,11 @@ function getPlatformKey() {
   const arch = os.arch();
 
   const map = {
-    "linux-x64": "x86_64-unknown-linux-gnu",
-    "linux-arm64": "aarch64-unknown-linux-gnu",
-    "darwin-x64": "x86_64-apple-darwin",
-    "darwin-arm64": "aarch64-apple-darwin",
-    "win32-x64": "x86_64-pc-windows-msvc",
+    "linux-x64": "linux-x86_64",
+    "linux-arm64": "linux-aarch64",
+    "darwin-x64": "darwin-x86_64",
+    "darwin-arm64": "darwin-aarch64",
+    "win32-x64": "win32-x86_64",
   };
 
   const key = `${platform}-${arch}`;
@@ -38,8 +38,7 @@ function getPlatformKey() {
 
 function getDownloadUrl() {
   const platformKey = getPlatformKey();
-  const ext = os.platform() === "win32" ? ".exe" : "";
-  return `https://github.com/${REPO}/releases/download/${VERSION}/hatch-${VERSION}-${platformKey}${ext}.tar.gz`;
+  return `https://github.com/${REPO}/releases/download/${VERSION}/hatch-${VERSION}-${platformKey}.tar.gz`;
 }
 
 function fetch(url, redirects = 0) {
