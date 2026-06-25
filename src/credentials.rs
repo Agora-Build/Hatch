@@ -18,8 +18,14 @@ impl Credentials {
         let mut loaded_from: Vec<String> = Vec::new();
 
         if let Some(path) = env_file {
+            let path_str = path.display().to_string();
+            let hint = if path_str.starts_with("~/") {
+                " (hint: use --env-file $HOME/... or a space before the path instead of =)"
+            } else {
+                ""
+            };
             dotenvy::from_path(path)
-                .map_err(|e| anyhow::anyhow!("Failed to load {}: {}", path.display(), e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to load {}: {}{}", path_str, e, hint))?;
             loaded_from.push(format!("{}", path.display()));
         } else if dotenvy::dotenv().is_ok() {
             loaded_from.push(".env".to_string());
