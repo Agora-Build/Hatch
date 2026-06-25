@@ -21,10 +21,18 @@ impl Credentials {
         } else {
             dotenvy::dotenv().ok();
         }
+        // Check platform-native config dir (~/Library/Application Support/ on macOS)
         if let Some(config_dir) = dirs::config_dir() {
             let global_env = config_dir.join("hatch").join(".env");
             if global_env.exists() {
                 dotenvy::from_path(&global_env).ok();
+            }
+        }
+        // Always check ~/.config/hatch/.env (works cross-platform)
+        if let Some(home) = dirs::home_dir() {
+            let xdg_env = home.join(".config").join("hatch").join(".env");
+            if xdg_env.exists() {
+                dotenvy::from_path(&xdg_env).ok();
             }
         }
 
