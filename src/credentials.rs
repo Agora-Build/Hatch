@@ -15,25 +15,44 @@ impl Credentials {
     ) -> anyhow::Result<Self> {
         // Priority (highest first): env vars > --env-file > local .env > ~/.config/hatch/.env
         // dotenvy does not overwrite existing env vars, so load highest priority first.
+        let mut loaded_from: Vec<String> = Vec::new();
+
         if let Some(path) = env_file {
             dotenvy::from_path(path)
                 .map_err(|e| anyhow::anyhow!("Failed to load {}: {}", path.display(), e))?;
-        } else {
-            dotenvy::dotenv().ok();
+            loaded_from.push(format!("{}", path.display()));
+        } else if dotenvy::dotenv().is_ok() {
+            loaded_from.push(".env".to_string());
         }
+
         // Check platform-native config dir (~/Library/Application Support/ on macOS)
         if let Some(config_dir) = dirs::config_dir() {
             let global_env = config_dir.join("hatch").join(".env");
             if global_env.exists() {
                 dotenvy::from_path(&global_env).ok();
+                loaded_from.push(format!("{}", global_env.display()));
             }
         }
+
         // Always check ~/.config/hatch/.env (works cross-platform)
         if let Some(home) = dirs::home_dir() {
             let xdg_env = home.join(".config").join("hatch").join(".env");
             if xdg_env.exists() {
                 dotenvy::from_path(&xdg_env).ok();
+                loaded_from.push(format!("{}", xdg_env.display()));
             }
+        }
+
+        if loaded_from.is_empty() {
+            eprintln!("Warning: no config file found. Looked for:");
+            eprintln!("  .env (current directory)");
+            if let Some(config_dir) = dirs::config_dir() {
+                eprintln!("  {}", config_dir.join("hatch").join(".env").display());
+            }
+            if let Some(home) = dirs::home_dir() {
+                eprintln!("  {}", home.join(".config").join("hatch").join(".env").display());
+            }
+            eprintln!("  Use --env-file <path> to specify a config file.");
         }
 
         let endpoint = endpoint_override
@@ -60,12 +79,13 @@ impl Credentials {
     /// Returns (access_key, secret_key, bucket) or fails with a clear error.
     /// Call this in push and drop before performing any S3 operation.
     pub fn require_s3(&self) -> anyhow::Result<(&str, &str, &str)> {
+        let hint = "Add it to .env, ~/.config/hatch/.env, or use --env-file.";
         let access_key = self.access_key.as_deref()
-            .ok_or_else(|| anyhow::anyhow!("HATCH_ACCESS_KEY not set. Add it to .env or export it."))?;
+            .ok_or_else(|| anyhow::anyhow!("HATCH_ACCESS_KEY not set. {}", hint))?;
         let secret_key = self.secret_key.as_deref()
-            .ok_or_else(|| anyhow::anyhow!("HATCH_SECRET_KEY not set. Add it to .env or export it."))?;
+            .ok_or_else(|| anyhow::anyhow!("HATCH_SECRET_KEY not set. {}", hint))?;
         let bucket = self.bucket.as_deref()
-            .ok_or_else(|| anyhow::anyhow!("HATCH_BUCKET not set. Add it to .env or export it."))?;
+            .ok_or_else(|| anyhow::anyhow!("HATCH_BUCKET not set. {}", hint))?;
         Ok((access_key, secret_key, bucket))
     }
 }
